@@ -79,7 +79,7 @@ const ChartVisualizer1 = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://127.0.0.1:8000/process-dataset/', {
+      const response = await fetch('http://4.227.155.222:8080/process-dataset/', {
         method: 'POST',
         body: formData
       });
