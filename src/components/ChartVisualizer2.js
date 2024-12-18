@@ -79,13 +79,15 @@ const ChartVisualizer2 = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://127.0.0.1:8000/process-dataset/', {
+      // Use full URL with CORS enabled
+      const response = await fetch('http://4.227.155.222:8080/process-dataset/', {
         method: 'POST',
+        mode: 'cors', // Changed from no-cors
         body: formData
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
@@ -364,7 +366,7 @@ const ChartVisualizer2 = () => {
                 <canvas 
                   ref={chartRefs[chartId]} 
                   id={chartId}
-                  className="max-w-full h-64"
+                  className="max-w-full h-48"
                 ></canvas>
               </div>
             );
