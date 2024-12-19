@@ -10,7 +10,7 @@ import ChartVisualizer2 from './components/ChartVisualizer2';
 function App() {
   return (
     <div className="App">
-      <ChartVisualizer2/>
+      <ChartVisualizer1/>
     </div>
   );
 }
