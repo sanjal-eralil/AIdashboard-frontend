@@ -6,7 +6,7 @@ import Papa from 'papaparse';
 // Register Chart.js components
 Chart.register(...registerables);
 
-const ChartVisualizer1 = () => {
+const ChartVisualizerloc = () => {
   // State management
   const [file, setFile] = useState(null);
   const [chartData, setChartData] = useState(null);
@@ -79,7 +79,7 @@ const ChartVisualizer1 = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://fdbe-4-227-155-222.ngrok-free.app/process-dataset/', {
+      const response = await fetch('http://127.0.0.1:8000/process-dataset/', {
         method: 'POST',
         body: formData
       });
@@ -375,4 +375,4 @@ const ChartVisualizer1 = () => {
   );
 };
 
-export default ChartVisualizer1;
+export default ChartVisualizerloc;
