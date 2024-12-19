@@ -6,10 +6,6 @@ import Papa from 'papaparse';
 // Register Chart.js components
 Chart.register(...registerables);
 
-// CORS Proxy URL
-const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
-const API_URL = 'http://4.227.155.222:8080/process-dataset/';
-
 const ChartVisualizer2 = () => {
   const [file, setFile] = useState(null);
   const [chartData, setChartData] = useState(null);
@@ -17,7 +13,6 @@ const ChartVisualizer2 = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Refs for chart canvases
   const chartRefs = {
     salesbyproductline: useRef(null),
     monthlysales: useRef(null),
@@ -69,105 +64,331 @@ const ChartVisualizer2 = () => {
     setIsLoading(true);
 
     try {
-      // Parse CSV file
       const csvData = await parseCSV(file);
       setParsedCsvData(csvData);
 
       const formData = new FormData();
       formData.append('file', file);
 
-      // Try with CORS proxy
-      const response = await fetch(CORS_PROXY + API_URL, {
+      const response = await fetch('https://fdbe-4-227-155-222.ngrok-free.app/process-dataset/', {
         method: 'POST',
-        body: formData,
-        headers: {
-          'Origin': window.location.origin,
-          // Remove any content-type header to let the browser set it with the boundary
-        },
+        body: formData
       });
 
       if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
+        throw new Error('Network response was not ok');
       }
 
       const result = await response.json();
       
       if (!result.analysis || !result.analysis.visualizations) {
-        throw new Error('Invalid response format from server');
+        throw new Error('Invalid response from server');
       }
 
       setChartData(result.analysis.visualizations);
+      setIsLoading(false);
     } catch (err) {
       console.error('Upload error:', err);
-      setError(`Error: ${err.message}. Please try again or contact support.`);
-      setChartData(null);
-    } finally {
+      setError(`Error processing file: ${err.message}`);
       setIsLoading(false);
+      setChartData(null);
     }
   }, [file]);
 
-  // Rest of the component remains the same...
-  // (Previous useEffect hooks for chart rendering)
+  useEffect(() => {
+    chartInstances.current.forEach(chart => chart.destroy());
+    chartInstances.current = [];
+
+    if (chartData && parsedCsvData) {
+      const chartTypeToId = {
+        'Bar Chart': 'salesbyproductline',
+        'Line Chart': 'monthlysales',
+        'Pie Chart': 'salesbycountry',
+        'Scatter Plot': 'quantityvssales',
+        'Doughnut Chart': 'dealsizedistribution'
+      };
+
+      chartData.forEach((viz) => {
+        const chartId = chartTypeToId[viz.type];
+        const canvasRef = chartRefs[chartId];
+        
+        if (canvasRef?.current) {
+          try {
+            const ctx = canvasRef.current.getContext('2d');
+            
+            if (!ctx) {
+              console.error(`Cannot get 2D context for ${viz.type}`);
+              return;
+            }
+
+            let chartConfig;
+            switch(viz.type) {
+              case 'Bar Chart':
+                chartConfig = {
+                  type: 'bar',
+                  data: {
+                    labels: Array.from(new Set(parsedCsvData.map(row => row.PRODUCTLINE))),
+                    datasets: [{
+                      label: 'Total Sales by Product Line',
+                      data: Array.from(new Set(parsedCsvData.map(row => row.PRODUCTLINE)))
+                        .map(productLine => 
+                          parsedCsvData
+                            .filter(row => row.PRODUCTLINE === productLine)
+                            .reduce((sum, row) => sum + (parseFloat(row.SALES) || 0), 0)
+                        ),
+                      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                      borderColor: 'rgba(75, 192, 192, 1)',
+                      borderWidth: 1
+                    }]
+                  },
+                  options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } } 
+                  }
+                };
+                break;
+              case 'Line Chart':
+                chartConfig = {
+                  type: 'line',
+                  data: {
+                    labels: Array.from(new Set(parsedCsvData.map(row => row.MONTH_ID))).sort((a, b) => a - b),
+                    datasets: [{
+                      label: 'Monthly Sales',
+                      data: Array.from(new Set(parsedCsvData.map(row => row.MONTH_ID)))
+                        .sort((a, b) => a - b)
+                        .map(month => 
+                          parsedCsvData
+                            .filter(row => row.MONTH_ID === month)
+                            .reduce((sum, row) => sum + (parseFloat(row.SALES) || 0), 0)
+                        ),
+                      fill: false,
+                      borderColor: 'rgb(75, 192, 192)',
+                      tension: 0.1
+                    }]
+                  },
+                  options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } } 
+                  }
+                };
+                break;
+              case 'Pie Chart':
+                chartConfig = {
+                  type: 'pie',
+                  data: {
+                    labels: Array.from(new Set(parsedCsvData.map(row => row.COUNTRY))),
+                    datasets: [{
+                      label: 'Sales by Country',
+                      data: Array.from(new Set(parsedCsvData.map(row => row.COUNTRY)))
+                        .map(country => 
+                          parsedCsvData
+                            .filter(row => row.COUNTRY === country)
+                            .reduce((sum, row) => sum + (parseFloat(row.SALES) || 0), 0)
+                        ),
+                      backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)'
+                      ],
+                      borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                      ],
+                      borderWidth: 1
+                    }]
+                  },
+                  options: { 
+                    responsive: true,
+                    maintainAspectRatio: false
+                  }
+                };
+                break;
+              case 'Scatter Plot':
+                chartConfig = {
+                  type: 'scatter',
+                  data: {
+                    datasets: [{
+                      label: 'Quantity Ordered vs Sales',
+                      data: parsedCsvData
+                        .filter(row => row.QUANTITYORDERED !== null && row.SALES !== null)
+                        .map(row => ({
+                          x: parseFloat(row.QUANTITYORDERED),
+                          y: parseFloat(row.SALES)
+                        })),
+                      backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                      borderColor: 'rgba(255, 99, 132, 1)',
+                      borderWidth: 1
+                    }]
+                  },
+                  options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                      x: { 
+                        type: 'linear', 
+                        position: 'bottom' 
+                      } 
+                    } 
+                  }
+                };
+                break;
+              case 'Doughnut Chart':
+                chartConfig = {
+                  type: 'doughnut',
+                  data: {
+                    labels: Array.from(new Set(parsedCsvData.map(row => row.DEALSIZE))),
+                    datasets: [{
+                      label: 'Deal Size Distribution',
+                      data: Array.from(new Set(parsedCsvData.map(row => row.DEALSIZE)))
+                        .map(dealSize => 
+                          parsedCsvData
+                            .filter(row => row.DEALSIZE === dealSize)
+                            .length
+                        ),
+                      backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)'
+                      ],
+                      borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)'
+                      ],
+                      borderWidth: 1
+                    }]
+                  },
+                  options: { 
+                    responsive: true,
+                    maintainAspectRatio: false
+                  }
+                };
+                break;
+              default:
+                console.error(`Unsupported chart type: ${viz.type}`);
+                return;
+            }
+
+            const chartInstance = new Chart(ctx, chartConfig);
+            chartInstances.current.push(chartInstance);
+          } catch (err) {
+            console.error(`Error creating ${viz.type} chart:`, err);
+          }
+        }
+      });
+    }
+  }, [chartData, parsedCsvData]);
+
+  useEffect(() => {
+    return () => {
+      chartInstances.current.forEach(chart => chart.destroy());
+    };
+  }, []);
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6 bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800">Data Visualization Dashboard</h1>
-        
-        <div className="flex flex-col md:flex-row gap-4 items-center">
-          <div className="w-full md:w-2/3">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">
+          AI Analytics Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Powerful insights through intelligent visualization
+        </p>
+      </div>
+
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 mb-8">
+        <div className="space-y-6">
+          <div className="w-full">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload your CSV file
+            </label>
             <input 
               type="file" 
               accept=".csv"
               onChange={handleFileChange}
               className="block w-full text-sm text-gray-500 
-                file:mr-4 file:py-2 file:px-4
+                file:mr-4 file:py-3 file:px-6
                 file:rounded-full file:border-0
                 file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100
+                file:bg-blue-500 file:text-white
+                hover:file:bg-blue-600
+                transition-all duration-300
                 cursor-pointer"
             />
           </div>
-          
-          <button 
-            onClick={handleUpload}
-            disabled={!file || isLoading}
-            className={`w-full md:w-1/3 px-6 py-2.5 rounded-lg transition-colors duration-200 ${
-              file && !isLoading 
-                ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800' 
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </span>
-            ) : 'Upload and Process'}
-          </button>
-        </div>
-
-        {error && (
-          <div className="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded" role="alert">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
+          <div className="flex justify-center">
+            <button 
+              onClick={handleUpload}
+              disabled={!file || isLoading}
+              className={`px-8 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 ${
+                file && !isLoading 
+                  ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isLoading ? 'Processing...' : 'Generate Visuals'}
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Charts grid remains the same */}
+      {error && (
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="flex justify-center items-center mb-8">
+          <div className="relative">
+            <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
+            <div className="w-16 h-16 border-t-4 border-blue-300 border-solid rounded-full animate-spin absolute top-0 left-0" style={{ animationDelay: '-0.3s' }}></div>
+          </div>
+          <span className="ml-4 text-gray-600 font-medium">Processing your data...</span>
+        </div>
+      )}
+
+      {chartData && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          {chartData.map((chart, index) => {
+            const chartTypeToId = {
+              'Bar Chart': 'salesbyproductline',
+              'Line Chart': 'monthlysales',
+              'Pie Chart': 'salesbycountry',
+              'Scatter Plot': 'quantityvssales',
+              'Doughnut Chart': 'dealsizedistribution'
+            };
+
+            const chartId = chartTypeToId[chart.type];
+            
+            return (
+              <div 
+                key={index} 
+                className="bg-white rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+              >
+                <h2 className="text-xl font-bold mb-4 text-gray-800 text-center">{chart.type}</h2>
+                <div className="h-64">
+                  <canvas 
+                    ref={chartRefs[chartId]} 
+                    id={chartId}
+                    className="w-full h-full"
+                  ></canvas>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

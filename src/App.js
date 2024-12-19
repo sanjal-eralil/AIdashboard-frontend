@@ -11,7 +11,7 @@ import ChartVisualizerloc from './components/ChartVisualizerloc';
 function App() {
   return (
     <div className="App">
-      <ChartVisualizer1/>
+      <ChartVisualizer2/>
     </div>
   );
 }
