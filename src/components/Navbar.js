@@ -38,7 +38,7 @@ const Navbar = () => {
         }
 
         .logo {
-          width: 100px;
+          width: 150px;
           height: 100px;
           transition: transform 0.4s ease;
         }
@@ -80,8 +80,8 @@ const Navbar = () => {
           }
 
           .logo {
-            width: 200px;
-            height: 80px;
+            width: 1200px;
+            height: 110px;
           }
 
           .title {
