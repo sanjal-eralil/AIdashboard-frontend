@@ -8,9 +8,11 @@ import ChartVisualizer2 from './components/ChartVisualizer2';
 import ChartVisualizerloc from './components/ChartVisualizerloc';
 
 
+
 function App() {
   return (
     <div className="App">
+    
       <ChartVisualizer2/>
     </div>
   );

@@ -121,7 +121,33 @@ const ChartVisualizer2 = () => {
               return;
             }
 
+            
+
+
             let chartConfig;
+            const commonDimensionOptions = {
+              responsive: true,
+              maintainAspectRatio: true,
+              aspectRatio: 1.5,  // Reduced from 2 to 1.5 for more compact charts
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    boxWidth: 12,  // Smaller legend items
+                    padding: 8     // Reduced padding
+                  }
+                }
+              },
+              layout: {
+                padding: {
+                  left: '15%',    // 15% padding on left
+                  right: '15%',   // 15% padding on right
+                  top: 10,
+                  bottom: 20
+                }
+              }
+            };
+
             switch(viz.type) {
               case 'Bar Chart':
                 chartConfig = {
@@ -138,12 +164,12 @@ const ChartVisualizer2 = () => {
                         ),
                       backgroundColor: 'rgba(75, 192, 192, 0.2)',
                       borderColor: 'rgba(75, 192, 192, 1)',
-                      borderWidth: 1
+                      borderWidth: 1,
+                      barPercentage: 0.7  // Make bars slightly thinner
                     }]
                   },
                   options: { 
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    ...commonDimensionOptions,
                     scales: { y: { beginAtZero: true } } 
                   }
                 };
@@ -168,8 +194,7 @@ const ChartVisualizer2 = () => {
                     }]
                   },
                   options: { 
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    ...commonDimensionOptions,
                     scales: { y: { beginAtZero: true } } 
                   }
                 };
@@ -205,8 +230,7 @@ const ChartVisualizer2 = () => {
                     }]
                   },
                   options: { 
-                    responsive: true,
-                    maintainAspectRatio: false
+                    ...commonDimensionOptions
                   }
                 };
                 break;
@@ -228,13 +252,15 @@ const ChartVisualizer2 = () => {
                     }]
                   },
                   options: { 
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    ...commonDimensionOptions,
                     scales: { 
                       x: { 
                         type: 'linear', 
                         position: 'bottom' 
-                      } 
+                      },
+                      y: {
+                        beginAtZero: true
+                      }
                     } 
                   }
                 };
@@ -266,8 +292,7 @@ const ChartVisualizer2 = () => {
                     }]
                   },
                   options: { 
-                    responsive: true,
-                    maintainAspectRatio: false
+                    ...commonDimensionOptions
                   }
                 };
                 break;
@@ -294,8 +319,8 @@ const ChartVisualizer2 = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-800 mb-2">
+      <div className="text-center mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
           AI Analytics Dashboard
         </h1>
         <p className="text-gray-600">
@@ -303,7 +328,7 @@ const ChartVisualizer2 = () => {
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8 mb-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
         <div className="space-y-6">
           <div className="w-full">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -340,7 +365,7 @@ const ChartVisualizer2 = () => {
       </div>
 
       {error && (
-        <div className="max-w-4xl mx-auto mb-8">
+        <div className="max-w-4xl mx-auto mb-6">
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
             <p className="font-bold">Error</p>
             <p>{error}</p>
@@ -359,7 +384,7 @@ const ChartVisualizer2 = () => {
       )}
 
       {chartData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl mx-auto">
           {chartData.map((chart, index) => {
             const chartTypeToId = {
               'Bar Chart': 'salesbyproductline',
@@ -377,12 +402,19 @@ const ChartVisualizer2 = () => {
                 className="bg-white rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
               >
                 <h2 className="text-xl font-bold mb-4 text-gray-800 text-center">{chart.type}</h2>
-                <div className="h-64">
+                <div className="h-48">  {/* Reduced height from h-80 to h-64 */}
+                <div className="w-full" style={{ height: '300px', padding: '0 35%' }}>
                   <canvas 
                     ref={chartRefs[chartId]} 
                     id={chartId}
                     className="w-full h-full"
+                    style={{
+                      width: '100%',
+                      height: '100%'
+                    }}
+
                   ></canvas>
+                  </div>
                 </div>
               </div>
             );
@@ -393,4 +425,4 @@ const ChartVisualizer2 = () => {
   );
 };
 
-export default ChartVisualizer2;
+export default ChartVisualizer2
