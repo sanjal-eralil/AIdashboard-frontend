@@ -1,7 +1,13 @@
+
+
+
+
+// ChartVisualizer2.js
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import Papa from 'papaparse';
+import './ChartVisualizer.css';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -22,6 +28,8 @@ const ChartVisualizer2 = () => {
   };
 
   const chartInstances = useRef([]);
+
+  // Rest of your existing JavaScript logic remains the same until the return statement
 
   const parseCSV = (file) => {
     return new Promise((resolve, reject) => {
@@ -316,47 +324,24 @@ const ChartVisualizer2 = () => {
       chartInstances.current.forEach(chart => chart.destroy());
     };
   }, []);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          AI Analytics Dashboard
-        </h1>
-        <p className="text-gray-600">
-          Powerful insights through intelligent visualization
-        </p>
-      </div>
-
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 mb-6">
-        <div className="space-y-6">
-          <div className="w-full">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload your CSV file
-            </label>
-            <input 
-              type="file" 
-              accept=".csv"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-gray-500 
-                file:mr-4 file:py-3 file:px-6
-                file:rounded-full file:border-0
-                file:text-sm file:font-semibold
-                file:bg-blue-500 file:text-white
-                hover:file:bg-blue-600
-                transition-all duration-300
-                cursor-pointer"
-            />
-          </div>
-          <div className="flex justify-center">
+    <div className="chart-container">
+      <div className="upload-container">
+        <div className="upload-section">
+          <label className="file-label">
+            Upload your CSV file
+          </label>
+          <input 
+            type="file" 
+            accept=".csv"
+            onChange={handleFileChange}
+            className="file-input"
+          />
+          <div className="button-container">
             <button 
               onClick={handleUpload}
               disabled={!file || isLoading}
-              className={`px-8 py-3 rounded-full font-semibold transition-all duration-300 transform hover:scale-105 ${
-                file && !isLoading 
-                  ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-md' 
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
+              className={`upload-button ${(!file || isLoading) ? 'disabled' : ''}`}
             >
               {isLoading ? 'Processing...' : 'Generate Visuals'}
             </button>
@@ -365,26 +350,26 @@ const ChartVisualizer2 = () => {
       </div>
 
       {error && (
-        <div className="max-w-4xl mx-auto mb-6">
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded" role="alert">
-            <p className="font-bold">Error</p>
+        <div className="error-container">
+          <div className="error-message">
+            <p className="error-title">Error</p>
             <p>{error}</p>
           </div>
         </div>
       )}
 
       {isLoading && (
-        <div className="flex justify-center items-center mb-8">
-          <div className="relative">
-            <div className="w-16 h-16 border-t-4 border-blue-500 border-solid rounded-full animate-spin"></div>
-            <div className="w-16 h-16 border-t-4 border-blue-300 border-solid rounded-full animate-spin absolute top-0 left-0" style={{ animationDelay: '-0.3s' }}></div>
+        <div className="loading-container">
+          <div className="spinner-container">
+            <div className="spinner"></div>
+            <div className="spinner spinner-delayed"></div>
           </div>
-          <span className="ml-4 text-gray-600 font-medium">Processing your data...</span>
+          <span className="loading-text">Processing your data...</span>
         </div>
       )}
 
       {chartData && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-6xl mx-auto">
+        <div className="charts-grid">
           {chartData.map((chart, index) => {
             const chartTypeToId = {
               'Bar Chart': 'salesbyproductline',
@@ -397,23 +382,15 @@ const ChartVisualizer2 = () => {
             const chartId = chartTypeToId[chart.type];
             
             return (
-              <div 
-                key={index} 
-                className="bg-white rounded-xl shadow-lg p-6 transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-              >
-                <h2 className="text-xl font-bold mb-4 text-gray-800 text-center">{chart.type}</h2>
-                <div className="h-48">  {/* Reduced height from h-80 to h-64 */}
-                <div className="w-full" style={{ height: '300px', padding: '0 35%' }}>
-                  <canvas 
-                    ref={chartRefs[chartId]} 
-                    id={chartId}
-                    className="w-full h-full"
-                    style={{
-                      width: '100%',
-                      height: '100%'
-                    }}
-
-                  ></canvas>
+              <div key={index} className="chart-card">
+                <h2 className="chart-title">{chart.type}</h2>
+                <div className="chart-wrapper">
+                  <div className="canvas-container">
+                    <canvas 
+                      ref={chartRefs[chartId]} 
+                      id={chartId}
+                      className="chart-canvas"
+                    ></canvas>
                   </div>
                 </div>
               </div>
@@ -425,4 +402,4 @@ const ChartVisualizer2 = () => {
   );
 };
 
-export default ChartVisualizer2
+export default ChartVisualizer2;
