@@ -12,7 +12,7 @@ const Navbar = () => {
           />
           <div className="title-container">
             <h1 className="title">AI Dashboard</h1>
-            <span className="tagline">Get Intelligent Visualisations</span>
+            <span className="tagline">Visualize, Analyze, and Chat with Your Data Seamlessly</span>
           </div>
         </div>
       </div>
