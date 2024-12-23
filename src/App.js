@@ -7,6 +7,7 @@ import ChartVisualizer1 from './components/ChartVisualizer1';
 import ChartVisualizer2 from './components/ChartVisualizer2';
 import ChartVisualizerloc from './components/ChartVisualizerloc';
 import Navbar from './components/Navbar';
+import APIForm from './components/APIForm';
 
 
 function App() {

@@ -8,6 +8,7 @@ import { Chart, registerables } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import Papa from 'papaparse';
 import './ChartVisualizer.css';
+import APIForm from './APIForm';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -78,7 +79,7 @@ const ChartVisualizer2 = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('https://fdbe-4-227-155-222.ngrok-free.app/process-dataset/', {
+      const response = await fetch('https://394e-4-227-155-222.ngrok-free.app/process-dataset/', {
         method: 'POST',
         body: formData
       });
@@ -347,6 +348,7 @@ const ChartVisualizer2 = () => {
             </button>
           </div>
         </div>
+        <APIForm/>
       </div>
 
       {error && (

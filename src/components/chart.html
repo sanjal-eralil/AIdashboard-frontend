@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Charts with CSV Upload</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script>
+    // Store chart instances globally
+    window.charts = {};
+
+    // Function to render charts
+    function renderCharts(visualizations, data) {
+      visualizations.forEach((viz) => {
+        const { type, code } = viz;
+        const canvasId = getCanvasIdFromChartType(type);
+
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) {
+          console.error(`Canvas with ID '${canvasId}' not found.`);
+          return;
+        }
+
+        try {
+          // Get 2D context and destroy previous chart if exists
+          const ctx = canvas.getContext("2d");
+          if (window.charts[canvasId]) {
+            window.charts[canvasId].destroy();
+          }
+
+          // Evaluate the chart creation function
+          const chartFn = new Function("Chart", "data", "ctx", code);
+          window.charts[canvasId] = chartFn(Chart, data, ctx);
+          console.log(`Rendered chart for ${type} on canvas '${canvasId}'.`);
+        } catch (error) {
+          console.error(`Error rendering chart '${type}' on canvas '${canvasId}':`, error);
+        }
+      });
+    }
+
+    // Map chart types to canvas IDs
+    function getCanvasIdFromChartType(type) {
+      const mapping = {
+        "Bar Chart": "salesByMonth",
+        "Line Chart": "salesOverTime",
+        "Pie Chart": "salesByProductLine",
+        "Scatter Plot": "quantityVsSales",
+        "Doughnut Chart": "salesByCountry",
+      };
+      return mapping[type] || null;
+    }
+
+    // Handle file upload
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const data = results.data;
+
+          const visualizations = [
+            {
+              type: "Bar Chart",
+              code: `return new Chart(ctx, {
+                type: 'bar',
+                data: {
+                  labels: [...new Set(data.map(row => row.MONTH_ID))],
+                  datasets: [{
+                    label: 'Total Sales by Month',
+                    data: [...new Set(data.map(row => row.MONTH_ID))].map(month => 
+                      data.filter(row => row.MONTH_ID === month)
+                          .reduce((sum, row) => sum + (parseFloat(row.SALES) || 0), 0)
+                    ),
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                  }]
+                },
+                options: { scales: { y: { beginAtZero: true } } }
+              });`
+            },
+            {
+              type: "Line Chart",
+              code: `return new Chart(ctx, {
+                type: 'line',
+                data: {
+                  labels: data.map(row => new Date(row.ORDERDATE).toLocaleDateString())
+                    .filter((value, index, self) => self.indexOf(value) === index),
+                  datasets: [{
+                    label: 'Sales Over Time',
+                    data: data.map(row => parseFloat(row.SALES) || 0),
+                    fill: false,
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                  }]
+                },
+                options: { scales: { x: { type: 'time', time: { unit: 'month' } }, y: { beginAtZero: true } } }
+              });`
+            },
+            {
+              type: "Pie Chart",
+              code: `return new Chart(ctx, {
+                type: 'pie',
+                data: {
+                  labels: [...new Set(data.map(row => row.PRODUCTLINE))],
+                  datasets: [{
+                    label: 'Sales by Product Line',
+                    data: [...new Set(data.map(row => row.PRODUCTLINE))].map(productLine => 
+                      data.filter(row => row.PRODUCTLINE === productLine)
+                          .reduce((sum, row) => sum + (parseFloat(row.SALES) || 0), 0)
+                    ),
+                    backgroundColor: ['rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)'],
+                    borderColor: ['rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)'],
+                    borderWidth: 1
+                  }]
+                },
+                options: { responsive: true }
+              });`
+            },
+            {
+              type: "Scatter Plot",
+              code: `return new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                  datasets: [{
+                    label: 'Quantity Ordered vs Sales',
+                    data: data.map(row => ({
+                      x: parseFloat(row.QUANTITYORDERED) || 0,
+                      y: parseFloat(row.SALES) || 0
+                    })),
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                  }]
+                },
+                options: { scales: { x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Quantity Ordered' } }, y: { title: { display: true, text: 'Sales' } } } }
+              });`
+            },
+            {
+              type: "Doughnut Chart",
+              code: `return new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                  labels: [...new Set(data.map(row => row.COUNTRY))],
+                  datasets: [{
+                    label: 'Sales by Country',
+                    data: [...new Set(data.map(row => row.COUNTRY))].map(country => 
+                      data.filter(row => row.COUNTRY === country)
+                          .reduce((sum, row) => sum + (parseFloat(row.SALES) || 0), 0)
+                    ),
+                    backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(153, 102, 255, 0.2)'],
+                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'],
+                    borderWidth: 1
+                  }]
+                },
+                options: { responsive: true }
+              });`
+            }
+          ];
+
+          renderCharts(visualizations, data);
+        }
+      });
+    }
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div class="container mx-auto p-4">
+    <div class="flex items-center space-x-4 mb-4">
+      <input type="file" accept=".csv" class="flex-grow text-sm text-gray-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" onchange="handleFileUpload(event)">
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div class="border rounded-lg p-2 shadow-sm">
+        <h2 class="text-sm font-semibold mb-1 text-gray-700">Sales by Product Line</h2>
+        <canvas id="salesByProductLine" class="w-full h-40"></canvas>
+      </div>
+
+      <div class="border rounded-lg p-2 shadow-sm">
+        <h2 class="text-sm font-semibold mb-1 text-gray-700">Sales Over Time</h2>
+        <canvas id="salesOverTime" class="w-full h-40"></canvas>
+      </div>
+
+      <div class="border rounded-lg p-2 shadow-sm">
+        <h2 class="text-sm font-semibold mb-1 text-gray-700">Sales by Country</h2>
+        <canvas id="salesByCountry" class="w-full h-40"></canvas>
+      </div>
+
+      <div class="border rounded-lg p-2 shadow-sm">
+        <h2 class="text-sm font-semibold mb-1 text-gray-700">Quantity vs Sales</h2>
+        <canvas id="quantityVsSales" class="w-full h-40"></canvas>
+      </div>
+
+      <div class="border rounded-lg p-2 shadow-sm">
+        <h2 class="text-sm font-semibold mb-1 text-gray-700">Sales by Month</h2>
+        <canvas id="salesByMonth" class="w-full h-40"></canvas>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
